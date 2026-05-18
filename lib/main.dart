@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/note_provider.dart';
+import 'screens/dashboard_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
-  runApp(const MemoSpaceApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.initialize();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NoteProvider()),
+      ],
+      child: const MemoSpaceApp(),
+    ),
+  );
 }
 
 class MemoSpaceApp extends StatelessWidget {
@@ -15,11 +29,7 @@ class MemoSpaceApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('MemoSpace Foundation'),
-        ),
-      ),
+      home: const DashboardScreen(),
     );
   }
 }
