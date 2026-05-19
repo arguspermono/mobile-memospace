@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/note_model.dart';
@@ -19,10 +21,11 @@ class NoteEditorScreen extends StatefulWidget {
 
 class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late TextEditingController _titleController;
-  late TextEditingController _contentController;
+  late QuillController _quillController;
+  final FocusNode _editorFocusNode = FocusNode();
+
   int? _selectedCategoryId;
   DateTime? _reminderDate;
-  
   List<String> _imagePaths = [];
   final ImagePicker _picker = ImagePicker();
 
@@ -30,9 +33,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.existingNote?.title ?? '');
-    _contentController = TextEditingController(text: widget.existingNote?.content ?? '');
     _selectedCategoryId = widget.existingNote?.categoryId;
-    
+
     if (widget.existingNote?.images != null && widget.existingNote!.images!.isNotEmpty) {
       _imagePaths = widget.existingNote!.images!.split(',');
     }
@@ -40,12 +42,36 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (widget.existingNote?.reminderDate != null) {
       _reminderDate = DateTime.parse(widget.existingNote!.reminderDate!);
     }
+
+    _quillController = _buildQuillController(widget.existingNote?.content);
+  }
+
+  QuillController _buildQuillController(String? rawContent) {
+    if (rawContent == null || rawContent.isEmpty) {
+      return QuillController.basic();
+    }
+    try {
+      final decoded = jsonDecode(rawContent);
+      if (decoded is List) {
+        final doc = Document.fromJson(decoded);
+        return QuillController(
+          document: doc,
+          selection: const TextSelection.collapsed(offset: 0),
+        );
+      }
+    } catch (_) {}
+    final doc = Document()..insert(0, rawContent);
+    return QuillController(
+      document: doc,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _contentController.dispose();
+    _quillController.dispose();
+    _editorFocusNode.dispose();
     super.dispose();
   }
 
@@ -73,182 +99,246 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-
     if (date == null) return;
-
     if (!mounted) return;
-    
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
-
     if (time == null) return;
-
     setState(() {
-      _reminderDate = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      _reminderDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
+  }
+
+  void _saveNote() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Title cannot be empty')),
+      );
+      return;
+    }
+
+    final deltaJson = jsonEncode(_quillController.document.toDelta().toJson());
+    final plainText = _quillController.document.toPlainText().trim();
+
+    final provider = context.read<NoteProvider>();
+    final now = DateTime.now().toIso8601String();
+    final String? imagesString = _imagePaths.isNotEmpty ? _imagePaths.join(',') : null;
+    final String? reminderString = _reminderDate?.toIso8601String();
+
+    if (widget.existingNote == null) {
+      final newNote = NoteModel(
+        title: title,
+        content: deltaJson,
+        categoryId: _selectedCategoryId,
+        images: imagesString,
+        reminderDate: reminderString,
+        createdAt: now,
+        updatedAt: now,
+      );
+      provider.addNote(newNote).then((_) {
+        if (_reminderDate != null) {
+          NotificationService.instance.scheduleNotification(
+            id: newNote.createdAt.hashCode,
+            title: 'Reminder: ${newNote.title}',
+            body: plainText.isEmpty ? 'Tap to view note' : plainText,
+            scheduledDate: _reminderDate!,
+          );
+        }
+      });
+    } else {
+      final updatedNote = widget.existingNote!.copyWith(
+        title: title,
+        content: deltaJson,
+        categoryId: _selectedCategoryId,
+        images: imagesString,
+        reminderDate: reminderString,
+        updatedAt: now,
+      );
+      provider.updateNote(updatedNote).then((_) {
+        final notifId = updatedNote.id ?? updatedNote.createdAt.hashCode;
+        if (_reminderDate != null) {
+          NotificationService.instance.scheduleNotification(
+            id: notifId,
+            title: 'Reminder: ${updatedNote.title}',
+            body: plainText.isEmpty ? 'Tap to view note' : plainText,
+            scheduledDate: _reminderDate!,
+          );
+        } else if (widget.existingNote!.reminderDate != null && _reminderDate == null) {
+          NotificationService.instance.cancelNotification(notifId);
+        }
+      });
+    }
+
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.existingNote == null ? 'New Note' : 'Edit Note'),
+        title: Text(
+          widget.existingNote == null ? 'New Note' : 'Edit Note',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: Icon(_reminderDate == null ? Icons.add_alarm : Icons.alarm_on),
+            icon: Icon(_reminderDate == null ? Icons.add_alarm_outlined : Icons.alarm_on, size: 22),
             tooltip: _reminderDate == null ? 'Set Reminder' : 'Edit Reminder',
-            color: _reminderDate == null ? null : Colors.deepOrange,
+            color: _reminderDate == null ? Colors.black87 : Colors.deepOrange,
             onPressed: _pickReminder,
           ),
           IconButton(
-            icon: const Icon(Icons.image),
+            icon: const Icon(Icons.image_outlined, size: 22),
             tooltip: 'Add Images',
+            color: Colors.black87,
             onPressed: _pickImage,
           ),
           IconButton(
-            icon: const Icon(Icons.check),
-            tooltip: 'Save',
-            onPressed: () {
-              final title = _titleController.text.trim();
-              final content = _contentController.text.trim();
-
-              if (title.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Title cannot be empty')),
-                );
-                return;
-              }
-
-              final provider = context.read<NoteProvider>();
-              final now = DateTime.now().toIso8601String();
-              final String? imagesString = _imagePaths.isNotEmpty ? _imagePaths.join(',') : null;
-              final String? reminderString = _reminderDate?.toIso8601String();
-
-              if (widget.existingNote == null) {
-                final newNote = NoteModel(
-                  title: title,
-                  content: content,
-                  categoryId: _selectedCategoryId,
-                  images: imagesString,
-                  reminderDate: reminderString,
-                  createdAt: now,
-                  updatedAt: now,
-                );
-                
-                provider.addNote(newNote).then((_) {
-                  if (_reminderDate != null) {
-                    NotificationService.instance.scheduleNotification(
-                      id: newNote.createdAt.hashCode,
-                      title: 'Reminder: ${newNote.title}',
-                      body: newNote.content ?? 'Tap to view note',
-                      scheduledDate: _reminderDate!,
-                    );
-                  }
-                });
-              } else {
-                final updatedNote = widget.existingNote!.copyWith(
-                  title: title,
-                  content: content,
-                  categoryId: _selectedCategoryId,
-                  images: imagesString,
-                  reminderDate: reminderString,
-                  updatedAt: now,
-                );
-                
-                provider.updateNote(updatedNote).then((_) {
-                  final notifId = updatedNote.id ?? updatedNote.createdAt.hashCode;
-                  if (_reminderDate != null) {
-                    NotificationService.instance.scheduleNotification(
-                      id: notifId,
-                      title: 'Reminder: ${updatedNote.title}',
-                      body: updatedNote.content ?? 'Tap to view note',
-                      scheduledDate: _reminderDate!,
-                    );
-                  } else if (widget.existingNote!.reminderDate != null && _reminderDate == null) {
-                    NotificationService.instance.cancelNotification(notifId);
-                  }
-                });
-              }
-
-              Navigator.pop(context);
-            },
+            icon: const Icon(Icons.check_circle_outline, size: 24, color: Colors.deepPurple),
+            tooltip: 'Save Note',
+            onPressed: _saveNote,
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCategorySelector(context),
-            const SizedBox(height: 8),
-            if (_reminderDate != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Editor Body Area
+          Expanded(
+            child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.alarm, size: 16, color: Colors.deepOrange),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Reminder set for ${_reminderDate!.day}/${_reminderDate!.month}/${_reminderDate!.year} at ${_reminderDate!.hour}:${_reminderDate!.minute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(color: Colors.deepOrange, fontSize: 12),
+                    const SizedBox(height: 8),
+                    _buildCategorySelector(context),
+                    const SizedBox(height: 12),
+                    if (_reminderDate != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.deepOrange.withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.deepOrange.withOpacity(0.15)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.alarm, size: 16, color: Colors.deepOrange),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Reminder set for ${_reminderDate!.day}/${_reminderDate!.month}/${_reminderDate!.year} at ${_reminderDate!.hour}:${_reminderDate!.minute.toString().padLeft(2, '0')}',
+                                style: const TextStyle(
+                                  color: Colors.deepOrange,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => setState(() => _reminderDate = null),
+                              child: const Icon(Icons.close, size: 16, color: Colors.deepOrange),
+                            ),
+                          ],
+                        ),
+                      ),
+                    TextField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        hintText: 'Title',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black38),
+                      ),
+                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
+                      textInputAction: TextInputAction.next,
                     ),
-                    const Spacer(),
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _reminderDate = null;
-                        });
-                      },
-                      child: const Icon(Icons.close, size: 16, color: Colors.grey),
+                    const Divider(height: 8, color: Colors.black12),
+                    _buildImageGallery(),
+                    Expanded(
+                      child: QuillEditor.basic(
+                        controller: _quillController,
+                        focusNode: _editorFocusNode,
+                        config: const QuillEditorConfig(
+                          placeholder: 'Start writing your story...',
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: 'Title',
-                border: InputBorder.none,
-                hintStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textInputAction: TextInputAction.next,
             ),
-            const Divider(),
-            _buildImageGallery(),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  hintText: 'Start typing...',
-                  border: InputBorder.none,
+            
+            // Styled Premium Bottom Ribbon Toolbar
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    offset: const Offset(0, -2),
+                    blurRadius: 6,
+                  ),
+                ],
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
-                style: const TextStyle(fontSize: 16),
-                maxLines: null,
-                expands: true,
-                keyboardType: TextInputType.multiline,
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: QuillSimpleToolbar(
+                    controller: _quillController,
+                    config: const QuillSimpleToolbarConfig(
+                      multiRowsDisplay: false,
+                      showFontFamily: false,
+                      showFontSize: false,
+                      showSubscript: false,
+                      showSuperscript: false,
+                      showInlineCode: false,
+                      showColorButton: false,
+                      showBackgroundColorButton: false,
+                      showClearFormat: true,
+                      showListNumbers: true,
+                      showListBullets: true,
+                      showListCheck: true,
+                      showQuote: false,
+                      showIndent: false,
+                      showLink: false,
+                      showSearchButton: false,
+                      showCodeBlock: false,
+                      showHeaderStyle: true,
+                      showBoldButton: true,
+                      showItalicButton: true,
+                      showUnderLineButton: true,
+                      showStrikeThrough: false,
+                      showAlignmentButtons: false,
+                      showDividers: true,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildImageGallery() {
     if (_imagePaths.isEmpty) return const SizedBox.shrink();
     return Container(
       height: 90,
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(top: 8, bottom: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _imagePaths.length,
@@ -289,7 +379,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               }).toList(),
               ActionChip(
                 label: const Text('Add Category'),
-                avatar: const Icon(Icons.add, size: 16),
+                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                backgroundColor: Colors.deepPurple.withOpacity(0.06),
+                side: BorderSide(color: Colors.deepPurple.withOpacity(0.12)),
+                avatar: const Icon(Icons.add, size: 16, color: Colors.deepPurple),
                 onPressed: () => _showAddCategoryDialog(context, provider),
               ),
             ],
@@ -301,7 +394,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   Future<void> _showAddCategoryDialog(BuildContext context, NoteProvider provider) async {
     final controller = TextEditingController();
-    String selectedColorHex = '#673AB7'; // default purple
+    String selectedColorHex = '#673AB7';
 
     final List<Map<String, dynamic>> colorOptions = [
       {'name': 'Purple', 'hex': '#673AB7'},
@@ -344,7 +437,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       final hex = option['hex'] as String;
                       final color = Color(int.parse(hex.substring(1, 7), radix: 16) + 0xFF000000);
                       final isSelected = selectedColorHex == hex;
-
                       return GestureDetector(
                         onTap: () {
                           setDialogState(() {

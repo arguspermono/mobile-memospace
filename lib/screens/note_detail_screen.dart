@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
 import '../models/note_model.dart';
-import '../models/category_model.dart';
 import '../providers/note_provider.dart';
 import 'note_editor_screen.dart';
 
@@ -11,11 +12,32 @@ class NoteDetailScreen extends StatelessWidget {
 
   const NoteDetailScreen({super.key, required this.note});
 
+  QuillController _buildController(String? rawContent) {
+    if (rawContent == null || rawContent.isEmpty) {
+      return QuillController.basic();
+    }
+    try {
+      final decoded = jsonDecode(rawContent);
+      if (decoded is List) {
+        return QuillController(
+          document: Document.fromJson(decoded),
+          selection: const TextSelection.collapsed(offset: 0),
+        );
+      }
+    } catch (_) {
+      // Legacy plain text
+    }
+    final doc = Document()..insert(0, rawContent);
+    return QuillController(
+      document: doc,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<NoteProvider>(
       builder: (context, provider, child) {
-        // Get the latest version of the note from provider
         final currentNote = provider.getNoteById(note.id!) ?? note;
         final category = currentNote.categoryId != null
             ? provider.getCategoryById(currentNote.categoryId!)
@@ -35,6 +57,8 @@ class NoteDetailScreen extends StatelessWidget {
         final List<String> imagePaths = currentNote.images != null && currentNote.images!.isNotEmpty
             ? currentNote.images!.split(',')
             : [];
+
+        final quillController = _buildController(currentNote.content);
 
         return Scaffold(
           appBar: AppBar(
@@ -89,7 +113,7 @@ class NoteDetailScreen extends StatelessWidget {
               ),
             ],
           ),
-          body: SingleChildScrollView(
+          body: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,10 +140,7 @@ class NoteDetailScreen extends StatelessWidget {
                 // Title
                 Text(
                   currentNote.title,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 8),
@@ -172,17 +193,20 @@ class NoteDetailScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // Content
-                if (currentNote.content != null && currentNote.content!.isNotEmpty)
-                  Text(
-                    currentNote.content!,
-                    style: const TextStyle(fontSize: 16, height: 1.6),
-                  )
-                else
-                  Text(
-                    'No content.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade400, fontStyle: FontStyle.italic),
+                // Rich Text Content (read-only QuillEditor)
+                Expanded(
+                  child: QuillEditor.basic(
+                    controller: quillController,
+                    config: const QuillEditorConfig(
+                      scrollable: true,
+                      autoFocus: false,
+                      expands: true,
+                      padding: EdgeInsets.zero,
+                      placeholder: 'No content.',
+                    ),
+                    focusNode: FocusNode(canRequestFocus: false),
                   ),
+                ),
               ],
             ),
           ),
