@@ -301,32 +301,93 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   Future<void> _showAddCategoryDialog(BuildContext context, NoteProvider provider) async {
     final controller = TextEditingController();
+    String selectedColorHex = '#673AB7'; // default purple
+
+    final List<Map<String, dynamic>> colorOptions = [
+      {'name': 'Purple', 'hex': '#673AB7'},
+      {'name': 'Blue', 'hex': '#2196F3'},
+      {'name': 'Teal', 'hex': '#009688'},
+      {'name': 'Green', 'hex': '#4CAF50'},
+      {'name': 'Orange', 'hex': '#FF9800'},
+      {'name': 'Red', 'hex': '#F44336'},
+      {'name': 'Pink', 'hex': '#E91E63'},
+      {'name': 'Indigo', 'hex': '#3F51B5'},
+      {'name': 'Cyan', 'hex': '#00BCD4'},
+      {'name': 'Brown', 'hex': '#795548'},
+      {'name': 'Grey', 'hex': '#607D8B'},
+      {'name': 'Lime', 'hex': '#CDDC39'},
+    ];
+
     await showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('New Category'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Category Name'),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isNotEmpty) {
-                  provider.addCategory(CategoryModel(name: name, colorHex: '#673AB7'));
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('New Category'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: controller,
+                    decoration: const InputDecoration(hintText: 'Category Name'),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Pick a color:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: colorOptions.map((option) {
+                      final hex = option['hex'] as String;
+                      final color = Color(int.parse(hex.substring(1, 7), radix: 16) + 0xFF000000);
+                      final isSelected = selectedColorHex == hex;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            selectedColorHex = hex;
+                          });
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: isSelected
+                                ? Border.all(color: Colors.black87, width: 3)
+                                : Border.all(color: Colors.transparent, width: 3),
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check, color: Colors.white, size: 18)
+                              : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final name = controller.text.trim();
+                    if (name.isNotEmpty) {
+                      provider.addCategory(CategoryModel(name: name, colorHex: selectedColorHex));
+                    }
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
