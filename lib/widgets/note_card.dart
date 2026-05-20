@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/note_model.dart';
 import '../models/category_model.dart';
@@ -112,7 +113,7 @@ class NoteCard extends StatelessWidget {
                         ),
                       if (note.content != null && note.content!.isNotEmpty) ...[
                         Text(
-                          note.content!,
+                          _extractPlainText(note.content!),
                           style: Theme.of(context).textTheme.bodyMedium,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -158,5 +159,23 @@ class NoteCard extends StatelessWidget {
     } catch (e) {
       return isoDate;
     }
+  }
+
+  /// Extracts plain text from a Quill delta JSON string.
+  /// Falls back to the raw string for legacy plain-text notes.
+  String _extractPlainText(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .map((op) {
+              final insert = op['insert'];
+              return insert is String ? insert : '';
+            })
+            .join()
+            .trim();
+      }
+    } catch (_) {}
+    return raw;
   }
 }
