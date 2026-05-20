@@ -44,6 +44,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
 
     _quillController = _buildQuillController(widget.existingNote?.content);
+    // Listen to controller changes to rebuild our custom toolbar state
+    _quillController.addListener(_onControllerUpdate);
+  }
+
+  void _onControllerUpdate() {
+    // Trigger a rebuild so our custom toolbar buttons reflect the current style
+    if (mounted) setState(() {});
   }
 
   QuillController _buildQuillController(String? rawContent) {
@@ -69,11 +76,109 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   void dispose() {
+    _quillController.removeListener(_onControllerUpdate);
     _titleController.dispose();
     _quillController.dispose();
     _editorFocusNode.dispose();
     super.dispose();
   }
+
+  // ──────────────────────────────────────────────────────────────
+  // Custom formatting logic – bypasses QuillSimpleToolbar entirely
+  // ──────────────────────────────────────────────────────────────
+
+  bool _isInlineActive(Attribute attr) {
+    final attrs = _quillController.getSelectionStyle().attributes;
+    if (attr.key == Attribute.list.key ||
+        attr.key == Attribute.header.key ||
+        attr.key == Attribute.script.key ||
+        attr.key == Attribute.align.key) {
+      final attribute = attrs[attr.key];
+      if (attribute == null) return false;
+      return attribute.value == attr.value;
+    }
+    return attrs.containsKey(attr.key);
+  }
+
+  /// Check if a block attribute (list, header) is currently active
+  bool _isBlockActive(Attribute attr) {
+    final style = _quillController.getSelectionStyle();
+    final val = style.attributes[attr.key];
+    if (val == null) return false;
+    return val.value == attr.value;
+  }
+
+  /// Toggle an inline format (bold, italic, underline, strikethrough)
+  void _toggleInline(Attribute attr) {
+    final isActive = _isInlineActive(attr);
+    _quillController.skipRequestKeyboard = !attr.isInline;
+    if (isActive) {
+      _quillController.formatSelection(Attribute.clone(attr, null));
+    } else {
+      _quillController.formatSelection(attr);
+    }
+  }
+
+  /// Toggle a block format (bullet list, numbered list, checklist)
+  void _toggleBlock(Attribute attr) {
+    final isActive = _isBlockActive(attr);
+    if (isActive) {
+      _quillController.formatSelection(Attribute.clone(attr, null));
+    } else {
+      _quillController.formatSelection(attr);
+    }
+    _editorFocusNode.requestFocus();
+  }
+
+  /// Cycle through header levels: none → H1 → H2 → H3 → none
+  void _cycleHeader() {
+    final style = _quillController.getSelectionStyle();
+    final headerAttr = style.attributes[Attribute.header.key];
+    final currentLevel = headerAttr?.value as int?;
+
+    Attribute nextAttr;
+    if (currentLevel == null) {
+      nextAttr = Attribute.h1;
+    } else if (currentLevel == 1) {
+      nextAttr = Attribute.h2;
+    } else if (currentLevel == 2) {
+      nextAttr = Attribute.h3;
+    } else {
+      nextAttr = Attribute.clone(Attribute.header, null);
+    }
+    _quillController.formatSelection(nextAttr);
+    _editorFocusNode.requestFocus();
+  }
+
+  /// Get current header level label for the toolbar
+  String _getHeaderLabel() {
+    final style = _quillController.getSelectionStyle();
+    final headerAttr = style.attributes[Attribute.header.key];
+    final level = headerAttr?.value as int?;
+    if (level == 1) return 'H1';
+    if (level == 2) return 'H2';
+    if (level == 3) return 'H3';
+    return 'H';
+  }
+
+  /// Clear all formatting from current selection
+  void _clearFormat() {
+    final length = _quillController.selection.end - _quillController.selection.start;
+    if (length > 0) {
+      // Clear inline styles
+      for (final attr in [Attribute.bold, Attribute.italic, Attribute.underline, Attribute.strikeThrough]) {
+        _quillController.formatSelection(Attribute.clone(attr, null));
+      }
+      // Clear block styles
+      _quillController.formatSelection(Attribute.clone(Attribute.header, null));
+      _quillController.formatSelection(Attribute.clone(Attribute.list, null));
+    }
+    _editorFocusNode.requestFocus();
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Image / Reminder pickers
+  // ──────────────────────────────────────────────────────────────
 
   Future<void> _pickImage() async {
     try {
@@ -175,6 +280,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     Navigator.pop(context);
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // BUILD
+  // ──────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -211,128 +320,237 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Editor Body Area
+          // Editor Body
           Expanded(
             child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    _buildCategorySelector(context),
-                    const SizedBox(height: 12),
-                    if (_reminderDate != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.deepOrange.withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.deepOrange.withOpacity(0.15)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.alarm, size: 16, color: Colors.deepOrange),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Reminder set for ${_reminderDate!.day}/${_reminderDate!.month}/${_reminderDate!.year} at ${_reminderDate!.hour}:${_reminderDate!.minute.toString().padLeft(2, '0')}',
-                                style: const TextStyle(
-                                  color: Colors.deepOrange,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  _buildCategorySelector(context),
+                  const SizedBox(height: 12),
+                  if (_reminderDate != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.deepOrange.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.deepOrange.withOpacity(0.15)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.alarm, size: 16, color: Colors.deepOrange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Reminder set for ${_reminderDate!.day}/${_reminderDate!.month}/${_reminderDate!.year} at ${_reminderDate!.hour}:${_reminderDate!.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(
+                                color: Colors.deepOrange,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            InkWell(
-                              onTap: () => setState(() => _reminderDate = null),
-                              child: const Icon(Icons.close, size: 16, color: Colors.deepOrange),
-                            ),
-                          ],
-                        ),
-                      ),
-                    TextField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        hintText: 'Title',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black38),
-                      ),
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const Divider(height: 8, color: Colors.black12),
-                    _buildImageGallery(),
-                    Expanded(
-                      child: QuillEditor.basic(
-                        controller: _quillController,
-                        focusNode: _editorFocusNode,
-                        config: const QuillEditorConfig(
-                          placeholder: 'Start writing your story...',
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                        ),
+                          ),
+                          InkWell(
+                            onTap: () => setState(() => _reminderDate = null),
+                            child: const Icon(Icons.close, size: 16, color: Colors.deepOrange),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Styled Premium Bottom Ribbon Toolbar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    offset: const Offset(0, -2),
-                    blurRadius: 6,
+                  TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Title',
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black38),
+                    ),
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const Divider(height: 8, color: Colors.black12),
+                  _buildImageGallery(),
+                  Expanded(
+                    child: QuillEditor.basic(
+                      controller: _quillController,
+                      focusNode: _editorFocusNode,
+                      config: const QuillEditorConfig(
+                        placeholder: 'Start writing your story...',
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
                 ],
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade200, width: 1),
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: QuillSimpleToolbar(
-                    controller: _quillController,
-                    config: const QuillSimpleToolbarConfig(
-                      multiRowsDisplay: false,
-                      showFontFamily: false,
-                      showFontSize: false,
-                      showSubscript: false,
-                      showSuperscript: false,
-                      showInlineCode: false,
-                      showColorButton: false,
-                      showBackgroundColorButton: false,
-                      showClearFormat: true,
-                      showListNumbers: true,
-                      showListBullets: true,
-                      showListCheck: true,
-                      showQuote: false,
-                      showIndent: false,
-                      showLink: false,
-                      showSearchButton: false,
-                      showCodeBlock: false,
-                      showHeaderStyle: true,
-                      showBoldButton: true,
-                      showItalicButton: true,
-                      showUnderLineButton: true,
-                      showStrikeThrough: false,
-                      showAlignmentButtons: false,
-                      showDividers: true,
-                    ),
-                  ),
-                ),
               ),
             ),
-          ],
+          ),
+
+          // ── Custom Toolbar (replaces QuillSimpleToolbar) ──
+          _buildCustomToolbar(),
+        ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // CUSTOM TOOLBAR – full control, no QuillSimpleToolbar dependency
+  // ──────────────────────────────────────────────────────────────
+
+  Widget _buildCustomToolbar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            offset: const Offset(0, -2),
+            blurRadius: 6,
+          ),
+        ],
+        border: Border(
+          top: BorderSide(color: Colors.grey.shade200, width: 1),
         ),
-      );
-    }
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                // Bold
+                _toolbarBtn(
+                  icon: Icons.format_bold,
+                  isActive: _isInlineActive(Attribute.bold),
+                  onTap: () => _toggleInline(Attribute.bold),
+                ),
+                // Italic
+                _toolbarBtn(
+                  icon: Icons.format_italic,
+                  isActive: _isInlineActive(Attribute.italic),
+                  onTap: () => _toggleInline(Attribute.italic),
+                ),
+                // Underline
+                _toolbarBtn(
+                  icon: Icons.format_underlined,
+                  isActive: _isInlineActive(Attribute.underline),
+                  onTap: () => _toggleInline(Attribute.underline),
+                ),
+                // Strikethrough
+                _toolbarBtn(
+                  icon: Icons.format_strikethrough,
+                  isActive: _isInlineActive(Attribute.strikeThrough),
+                  onTap: () => _toggleInline(Attribute.strikeThrough),
+                ),
+                _toolbarDivider(),
+                // Header cycle (H → H1 → H2 → H3 → H)
+                _toolbarHeaderBtn(),
+                _toolbarDivider(),
+                // Bullet list
+                _toolbarBtn(
+                  icon: Icons.format_list_bulleted,
+                  isActive: _isBlockActive(Attribute.ul),
+                  onTap: () => _toggleBlock(Attribute.ul),
+                ),
+                // Numbered list
+                _toolbarBtn(
+                  icon: Icons.format_list_numbered,
+                  isActive: _isBlockActive(Attribute.ol),
+                  onTap: () => _toggleBlock(Attribute.ol),
+                ),
+                // Checklist
+                _toolbarBtn(
+                  icon: Icons.checklist,
+                  isActive: _isBlockActive(Attribute.unchecked),
+                  onTap: () => _toggleBlock(Attribute.unchecked),
+                ),
+                _toolbarDivider(),
+                // Clear formatting
+                _toolbarBtn(
+                  icon: Icons.format_clear,
+                  isActive: false,
+                  onTap: _clearFormat,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _toolbarBtn({
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: Material(
+        color: isActive ? Colors.deepPurple.withOpacity(0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 22,
+              color: isActive ? Colors.deepPurple : Colors.grey.shade700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _toolbarHeaderBtn() {
+    final label = _getHeaderLabel();
+    final isActive = label != 'H';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: Material(
+        color: isActive ? Colors.deepPurple.withOpacity(0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: _cycleHeader,
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.deepPurple : Colors.grey.shade700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _toolbarDivider() {
+    return Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      color: Colors.grey.shade300,
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Shared UI builders
+  // ──────────────────────────────────────────────────────────────
 
   Widget _buildImageGallery() {
     if (_imagePaths.isEmpty) return const SizedBox.shrink();
@@ -376,7 +594,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                     },
                   ),
                 );
-              }).toList(),
+              }),
               ActionChip(
                 label: const Text('Add Category'),
                 labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepPurple),
