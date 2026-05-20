@@ -20,7 +20,6 @@ To guarantee a functional, stable, and beginner-friendly v1.0 release, developme
 
 ## 4. Non-MVP Features (Out-of-Scope)
 *Do not implement these during the MVP phase to prevent feature creep:*
-- Optical Character Recognition (OCR) from images
 - Rich text editing (bold, italics, bullet lists formatting)
 - Cloud synchronization or cross-device syncing
 - User authentication / Login systems
@@ -35,7 +34,7 @@ The MVP is considered ready for release when:
 
 ## 6. Future Roadmap (v2.0+)
 Once the MVP is launched and stable, the following enhancements will be evaluated:
-- **v1.1**: App theming (Custom colors and Dark/Light mode toggles).
+- **v1.1**: App theming (Custom colors and Dark/Light mode toggles) and Optical Character Recognition (OCR) [SHIPPED].
 - **v1.5**: Full Rich text editor support.
 - **v2.0**: Optional Cloud sync/backup (e.g., via Firebase or Supabase).
 - **v2.5**: Collaborative folders and shared notes with other users.

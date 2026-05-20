@@ -9,7 +9,7 @@ import '../providers/note_provider.dart';
 import '../services/notification_service.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/image_thumbnail.dart';
-
+import '../services/ocr_service.dart';
 class NoteEditorScreen extends StatefulWidget {
   final NoteModel? existingNote;
 
@@ -23,6 +23,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   late TextEditingController _titleController;
   late QuillController _quillController;
   final FocusNode _editorFocusNode = FocusNode();
+  bool _isOcrLoading = false;
 
   int? _selectedCategoryId;
   DateTime? _reminderDate;
@@ -177,8 +178,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Image / Reminder pickers
+  // Image / Reminder / OCR pickers
   // ──────────────────────────────────────────────────────────────
+
+  Future<void> _performOcr() async {
+    setState(() => _isOcrLoading = true);
+    try {
+      final extractedText = await OcrService.scanFromImage(context, _picker);
+      if (extractedText == null) return;
+      
+      // Insert text at current cursor position
+      final index = _quillController.selection.baseOffset;
+      _quillController.document.insert(index, extractedText);
+    } finally {
+      if (mounted) {
+        setState(() => _isOcrLoading = false);
+      }
+    }
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -446,6 +463,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   onTap: () => _toggleInline(Attribute.strikeThrough),
                 ),
                 _toolbarDivider(),
+                // OCR Scan
+                _toolbarBtn(
+                  icon: Icons.document_scanner_outlined,
+                  isActive: false,
+                  isLoading: _isOcrLoading,
+                  onTap: _performOcr,
+                ),
+                _toolbarDivider(),
                 // Header cycle (H → H1 → H2 → H3 → H)
                 _toolbarHeaderBtn(),
                 _toolbarDivider(),
@@ -486,6 +511,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
+    bool isLoading = false,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -494,16 +520,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           child: Container(
             width: 40,
             height: 40,
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 22,
-              color: isActive ? Colors.deepPurple : Colors.grey.shade700,
-            ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.deepPurple),
+                  )
+                : Icon(
+                    icon,
+                    size: 22,
+                    color: isActive ? Colors.deepPurple : Colors.grey.shade700,
+                  ),
           ),
         ),
       ),
