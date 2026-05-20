@@ -9,7 +9,7 @@ import '../providers/note_provider.dart';
 import '../services/notification_service.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/image_thumbnail.dart';
-
+import '../services/ocr_service.dart';
 class NoteEditorScreen extends StatefulWidget {
   final NoteModel? existingNote;
 
@@ -177,8 +177,17 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Image / Reminder pickers
+  // Image / Reminder / OCR pickers
   // ──────────────────────────────────────────────────────────────
+
+  Future<void> _performOcr() async {
+    final extractedText = await OcrService.scanFromImage(context, _picker);
+    if (extractedText == null) return;
+    
+    // Insert text at current cursor position
+    final index = _quillController.selection.baseOffset;
+    _quillController.document.insert(index, extractedText);
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -444,6 +453,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   icon: Icons.format_strikethrough,
                   isActive: _isInlineActive(Attribute.strikeThrough),
                   onTap: () => _toggleInline(Attribute.strikeThrough),
+                ),
+                _toolbarDivider(),
+                // OCR Scan
+                _toolbarBtn(
+                  icon: Icons.document_scanner_outlined,
+                  isActive: false,
+                  onTap: _performOcr,
                 ),
                 _toolbarDivider(),
                 // Header cycle (H → H1 → H2 → H3 → H)
