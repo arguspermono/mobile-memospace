@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,8 @@ import '../services/notification_service.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/image_thumbnail.dart';
 import '../services/ocr_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 class NoteEditorScreen extends StatefulWidget {
   final NoteModel? existingNote;
 
@@ -211,8 +214,23 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     try {
       final List<XFile> images = await _picker.pickMultiImage();
       if (images.isNotEmpty) {
+        // Copy images to permanent app directory so they survive cache clearing
+        final appDir = await getApplicationDocumentsDirectory();
+        final imageDir = Directory('${appDir.path}/note_images');
+        if (!await imageDir.exists()) {
+          await imageDir.create(recursive: true);
+        }
+
+        final List<String> permanentPaths = [];
+        for (final img in images) {
+          final extension = p.extension(img.path);
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${permanentPaths.length}$extension';
+          final permanentFile = await File(img.path).copy('${imageDir.path}/$fileName');
+          permanentPaths.add(permanentFile.path);
+        }
+
         setState(() {
-          _imagePaths.addAll(images.map((img) => img.path));
+          _imagePaths.addAll(permanentPaths);
         });
       }
     } catch (e) {
