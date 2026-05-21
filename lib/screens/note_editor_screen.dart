@@ -182,14 +182,24 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   // ──────────────────────────────────────────────────────────────
 
   Future<void> _performOcr() async {
-    setState(() => _isOcrLoading = true);
     try {
-      final extractedText = await OcrService.scanFromImage(context, _picker);
+      final extractedText = await OcrService.scanFromImage(
+        context: context, 
+        picker: _picker,
+        onProcessingStarted: () => setState(() => _isOcrLoading = true),
+      );
       if (extractedText == null) return;
       
       // Insert text at current cursor position
       final index = _quillController.selection.baseOffset;
       _quillController.document.insert(index, extractedText);
+      
+      // Move cursor to the end of the inserted text and ensure focus
+      _quillController.updateSelection(
+        TextSelection.collapsed(offset: index + extractedText.length),
+        ChangeSource.local,
+      );
+      _editorFocusNode.requestFocus();
     } finally {
       if (mounted) {
         setState(() => _isOcrLoading = false);
