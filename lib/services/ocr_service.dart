@@ -5,7 +5,11 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 class OcrService {
   /// Prompts the user to pick an image (camera or gallery) and extracts text from it.
   /// Returns the recognized text or null if no text was found/user cancelled.
-  static Future<String?> scanFromImage(BuildContext context, ImagePicker picker) async {
+  static Future<String?> scanFromImage({
+    required BuildContext context, 
+    required ImagePicker picker,
+    VoidCallback? onProcessingStarted,
+  }) async {
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -33,6 +37,11 @@ class OcrService {
       if (image == null) return null;
 
       final inputImage = InputImage.fromFilePath(image.path);
+      
+      if (onProcessingStarted != null) {
+        onProcessingStarted();
+      }
+      
       final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
       try {

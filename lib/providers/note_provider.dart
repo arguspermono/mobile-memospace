@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/note_model.dart';
 import '../models/category_model.dart';
+import 'dart:io';
 import '../services/database_helper.dart';
 
 class NoteProvider extends ChangeNotifier {
@@ -72,6 +73,20 @@ class NoteProvider extends ChangeNotifier {
   }
 
   Future<void> deleteNote(int id) async {
+    final note = getNoteById(id);
+    if (note != null && note.images != null && note.images!.isNotEmpty) {
+      final imagePaths = note.images!.split(',');
+      for (final path in imagePaths) {
+        try {
+          final file = File(path);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        } catch (e) {
+          // Ignore deletion errors
+        }
+      }
+    }
     await DatabaseHelper.instance.deleteNote(id);
     await loadData();
   }
