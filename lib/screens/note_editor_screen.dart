@@ -624,10 +624,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         itemBuilder: (context, index) {
           return ImageThumbnail(
             imagePath: _imagePaths[index],
-            onRemove: () {
+            onRemove: () async {
+              final pathToRemove = _imagePaths[index];
               setState(() {
                 _imagePaths.removeAt(index);
               });
+              try {
+                final file = File(pathToRemove);
+                if (await file.exists()) {
+                  await file.delete();
+                }
+              } catch (e) {
+                // Ignore error
+              }
             },
           );
         },
