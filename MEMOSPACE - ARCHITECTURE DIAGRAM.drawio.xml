@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-05-24T10:00:00.000Z" agent="Antigravity-AI" version="21.0.0" type="device">
+  <diagram id="Page-1" name="MemoSpace Architecture Diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- ==================== swimlane / boxes ==================== -->
+        <!-- PRESENTATION LAYER BOX -->
+        <mxCell id="box_ui" value="&lt;b&gt;PRESENTATION LAYER (FLUTTER UI)&lt;/b&gt;" style="shape=mxgraph.bootstrap.rrect;whiteSpace=wrap;html=1;fillColor=#F8F5FF;strokeColor=#D6BCFA;strokeWidth=2;align=left;verticalAlign=top;spacingLeft=15;spacingTop=12;fontSize=13;fontStyle=1;fontColor=#6B46C1;rounded=1;arcSize=8;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="30" y="30" width="740" height="210" as="geometry" />
+        </mxCell>
+        
+        <!-- STATE MANAGEMENT LAYER BOX -->
+        <mxCell id="box_logic" value="&lt;b&gt;STATE MANAGEMENT &amp;amp; CONTROLLER&lt;/b&gt;" style="shape=mxgraph.bootstrap.rrect;whiteSpace=wrap;html=1;fillColor=#F0F4FF;strokeColor=#BEE3F8;strokeWidth=2;align=left;verticalAlign=top;spacingLeft=15;spacingTop=12;fontSize=13;fontStyle=1;fontColor=#2B6CB0;rounded=1;arcSize=8;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="30" y="260" width="740" height="110" as="geometry" />
+        </mxCell>
+        
+        <!-- SERVICES LAYER BOX -->
+        <mxCell id="box_services" value="&lt;b&gt;SERVICE INTEGRATION &amp;amp; HARDWARE APIs&lt;/b&gt;" style="shape=mxgraph.bootstrap.rrect;whiteSpace=wrap;html=1;fillColor=#E6FFFA;strokeColor=#B2F5EA;strokeWidth=2;align=left;verticalAlign=top;spacingLeft=15;spacingTop=12;fontSize=13;fontStyle=1;fontColor=#319795;rounded=1;arcSize=8;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="30" y="390" width="740" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- DATA PERSISTENCE LAYER BOX -->
+        <mxCell id="box_data" value="&lt;b&gt;LOCAL DATA PERSISTENCE LAYER (100% OFFLINE)&lt;/b&gt;" style="shape=mxgraph.bootstrap.rrect;whiteSpace=wrap;html=1;fillColor=#F7FAFC;strokeColor=#E2E8F0;strokeWidth=2;align=left;verticalAlign=top;spacingLeft=15;spacingTop=12;fontSize=13;fontStyle=1;fontColor=#4A5568;rounded=1;arcSize=8;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="30" y="570" width="740" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- ==================== UI Layer Nodes ==================== -->
+        <mxCell id="node_dashboard" value="&lt;b&gt;Dashboard Screen&lt;/b&gt;&lt;br&gt;- Note List Summary&lt;br&gt;- Category Chips Filter&lt;br&gt;- Pinned Notes &amp;amp; Search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#805AD5;strokeWidth=2;fontSize=11;fontColor=#553C9A;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="60" y="80" width="180" height="65" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_detail" value="&lt;b&gt;Note Detail Screen&lt;/b&gt;&lt;br&gt;- Read-Only Note View&lt;br&gt;- Image list thumbnail list&lt;br&gt;- Alarm trigger displays" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#805AD5;strokeWidth=2;fontSize=11;fontColor=#553C9A;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="260" y="80" width="180" height="65" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_editor" value="&lt;b&gt;Note Editor Screen&lt;/b&gt;&lt;br&gt;- New/Edit Note CRUD forms&lt;br&gt;- Custom formatting logic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#805AD5;strokeWidth=2;fontSize=11;fontColor=#553C9A;align=center;verticalAlign=top;spacingTop=8;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="460" y="80" width="280" height="135" as="geometry" />
+        </mxCell>
+        
+        <!-- Subcomponents of Note Editor -->
+        <mxCell id="node_rich_editor" value="&lt;b&gt;Rich Text Editor&lt;/b&gt;&lt;br&gt;(&lt;i&gt;flutter_quill&lt;/i&gt;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#D6BCFA;strokeWidth=1;fontSize=10;fontColor=#553C9A;" parent="1" vertex="1">
+          <mxGeometry x="475" y="145" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_ocr_btn" value="&lt;b&gt;OCR Tool&lt;/b&gt;&lt;br&gt;&amp;amp; Camera Tool" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#D6BCFA;strokeWidth=1;fontSize=10;fontColor=#553C9A;" parent="1" vertex="1">
+          <mxGeometry x="605" y="145" width="120" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- ==================== Logic Layer Nodes ==================== -->
+        <mxCell id="node_provider" value="&lt;b&gt;NoteProvider&lt;/b&gt; (&lt;i&gt;provider package&lt;/i&gt;)&lt;br&gt;- Central State Management / Controller&lt;br&gt;- Manages active Note &amp;amp; Category lists in RAM&lt;br&gt;- Notifies UI layers via &lt;i&gt;notifyListeners()&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#3182CE;strokeWidth=2;fontSize=12;fontColor=#2B6CB0;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="230" y="280" width="340" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- ==================== Services Layer Nodes ==================== -->
+        <mxCell id="node_ocr_service" value="&lt;b&gt;OcrService&lt;/b&gt;&lt;br&gt;&lt;i&gt;google_mlkit_text_recognition&lt;/i&gt;&lt;br&gt;- Optical Character Recognition&lt;br&gt;- Extracts text from image files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#319795;strokeWidth=2;fontSize=11;fontColor=#234E52;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="50" y="415" width="215" height="75" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_notif_service" value="&lt;b&gt;NotificationService&lt;/b&gt;&lt;br&gt;&lt;i&gt;flutter_local_notifications&lt;/i&gt;&lt;br&gt;- Local Device Reminders&lt;br&gt;- Native alarm triggers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#319795;strokeWidth=2;fontSize=11;fontColor=#234E52;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="285" y="415" width="220" height="75" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_image_picker" value="&lt;b&gt;Image Picker Helper&lt;/b&gt;&lt;br&gt;&lt;i&gt;image_picker&lt;/i&gt;&lt;br&gt;- Interfaces OS Camera&lt;br&gt;- Pick images from Gallery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#319795;strokeWidth=2;fontSize=11;fontColor=#234E52;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="525" y="415" width="220" height="75" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_path_provider" value="&lt;b&gt;Path Provider &amp;amp; File I/O Helper&lt;/b&gt; - Copy attachments to perm storage directory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6FFFA;strokeColor=#81E6D9;strokeWidth=1;fontSize=10;fontColor=#1D4ED8;" parent="1" vertex="1">
+          <mxGeometry x="235" y="505" width="330" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- ==================== Data Layer Nodes ==================== -->
+        <mxCell id="node_sqlite" value="&lt;b&gt;SQLite Database&lt;/b&gt;&lt;br&gt;(&lt;i&gt;sqflite package&lt;/i&gt;)&lt;br&gt;- Stores notes Delta JSON&lt;br&gt;- Categories Metadata&lt;br&gt;- Reminder Date ISO strings" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FFFFFF;strokeColor=#4A5568;strokeWidth=2;fontSize=11;fontColor=#2D3748;shadow=1;" parent="1" vertex="1">
+          <mxGeometry x="180" y="595" width="200" height="85" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="node_filesystem" value="&lt;b&gt;Device Local Storage&lt;/b&gt;&lt;br&gt;(&lt;i&gt;Application Documents&lt;/i&gt;)&lt;br&gt;- Persistent Note Images&lt;br&gt;- Survives Cache Clears&lt;br&gt;- SQLite paths reference" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A5568;strokeWidth=2;fontSize=11;fontColor=#2D3748;shadow=1;tabWidth=45;tabHeight=15;" parent="1" vertex="1">
+          <mxGeometry x="430" y="595" width="200" height="85" as="geometry" />
+        </mxCell>
+        
+        <!-- ==================== Connections / Edges ==================== -->
+        <!-- UI <=> Provider bidirectional flow -->
+        <mxCell id="edge_dash_prov" value="State Sync" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#805AD5;strokeWidth=1.5;fontSize=9;fontColor=#553C9A;endArrow=classic;startArrow=classic;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" parent="1" source="node_dashboard" target="node_provider" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge_detail_prov" value="Read Note" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#805AD5;strokeWidth=1.5;fontSize=9;fontColor=#553C9A;endArrow=classic;startArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="node_detail" target="node_provider" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge_editor_prov" value="CRUD Actions" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#805AD5;strokeWidth=1.5;fontSize=9;fontColor=#553C9A;endArrow=classic;startArrow=none;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" parent="1" source="node_editor" target="node_provider" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Provider <=> SQLite database flow -->
+        <mxCell id="edge_prov_sqlite" value="SQL Queries" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3182CE;strokeWidth=1.5;fontSize=9;fontColor=#2B6CB0;endArrow=classic;startArrow=classic;exitX=0.35;exitY=1;entryX=0.5;entryY=0;" parent="1" source="node_provider" target="node_sqlite" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Provider <=> Path provider copy flow -->
+        <mxCell id="edge_prov_path" value="Image Copy Flow" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3182CE;strokeWidth=1.5;fontSize=9;fontColor=#2B6CB0;endArrow=classic;startArrow=none;exitX=0.65;exitY=1;entryX=0.5;entryY=0;" parent="1" source="node_provider" target="node_path_provider" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Services to UI / Editor flow -->
+        <mxCell id="edge_ocr_editor" value="Extract Text" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#319795;strokeWidth=1.5;fontSize=9;fontColor=#234E52;endArrow=classic;startArrow=none;exitX=0.25;exitY=0;entryX=0.15;entryY=1;" parent="1" source="node_ocr_service" target="node_editor" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="104" y="230" />
+              <mxPoint x="502" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_picker_editor" value="Pick Image" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#319795;strokeWidth=1.5;fontSize=9;fontColor=#234E52;endArrow=classic;startArrow=none;exitX=0.75;exitY=0;entryX=0.85;entryY=1;" parent="1" source="node_image_picker" target="node_editor" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="230" />
+              <mxPoint x="698" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="edge_picker_ocr" value="Provide Image" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#319795;strokeWidth=1.2;fontSize=9;fontColor=#234E52;endArrow=classic;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" parent="1" source="node_image_picker" target="node_ocr_service" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge_editor_notif" value="Schedule local alarm" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#319795;strokeWidth=1.5;fontSize=9;fontColor=#234E52;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" parent="1" source="node_editor" target="node_notif_service" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Filesystem links -->
+        <mxCell id="edge_path_fs" value="Persist File" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#319795;strokeWidth=1.5;fontSize=9;fontColor=#234E52;endArrow=classic;exitX=0.8;exitY=1;entryX=0.5;entryY=0;" parent="1" source="node_path_provider" target="node_filesystem" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
