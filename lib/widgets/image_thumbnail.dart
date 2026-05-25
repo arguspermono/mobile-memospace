@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 
 class ImageThumbnail extends StatelessWidget {
   final String imagePath;
-  final VoidCallback onRemove;
+  final VoidCallback? onRemove;
 
   const ImageThumbnail({
     super.key,
     required this.imagePath,
-    required this.onRemove,
+    this.onRemove,
   });
 
   @override
@@ -27,25 +27,26 @@ class ImageThumbnail extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.close,
-                color: Colors.white,
-                size: 16,
+        if (onRemove != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

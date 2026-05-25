@@ -29,10 +29,15 @@ class CategoryChip extends StatelessWidget {
       label: Text(category.name),
       selected: isSelected,
       onSelected: onSelected,
-      selectedColor: badgeColor.withOpacity(0.3),
+      selectedColor: badgeColor.withValues(alpha: 0.3),
       checkmarkColor: badgeColor,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFFEBF0F3), width: 1.5),
+      ),
       labelStyle: TextStyle(
-        color: isSelected ? badgeColor.withOpacity(0.9) : Colors.black87,
+        color: isSelected ? badgeColor.withValues(alpha: 0.9) : const Color(0xFF252422),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
     );

@@ -31,16 +31,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   provider: ^6.1.1                # State management
   sqflite: ^2.3.0                 # Local SQLite database
   path_provider: ^2.1.2           # Access file system for DB
   flutter_local_notifications: ^17.1.2 # Reminders
-  intl: ^0.19.0                   # Date formatting
+  intl: ^0.20.2                   # Date formatting
   image_picker: ^1.1.2            # Select images from gallery/camera
   timezone: ^0.9.4
+  flutter_quill: ^11.5.0
+  flutter_localizations:
+    sdk: flutter
+  google_mlkit_text_recognition: ^0.15.1
+  flutter_quill_extensions: ^11.0.0
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +54,13 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "asset/img/logo/memospace_logogram.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -65,9 +74,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - asset/img/logo/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

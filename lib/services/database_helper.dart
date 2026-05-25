@@ -6,7 +6,7 @@ import '../models/note_model.dart';
 
 class DatabaseHelper {
   static const _databaseName = "MemoSpace.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   static const tableCategories = 'categories';
   static const tableNotes = 'notes';
@@ -30,6 +30,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
     );
   }
@@ -55,6 +56,7 @@ class DatabaseHelper {
         content TEXT,
         category_id INTEGER,
         is_pinned INTEGER DEFAULT 0,
+        is_favorite INTEGER DEFAULT 0,
         reminder_date TEXT,
         images TEXT,
         created_at TEXT NOT NULL,
@@ -62,6 +64,12 @@ class DatabaseHelper {
         FOREIGN KEY (category_id) REFERENCES $tableCategories (id) ON DELETE SET NULL
       )
     ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE $tableNotes ADD COLUMN is_favorite INTEGER DEFAULT 0');
+    }
   }
 
   // --- Category CRUD Operations ---

@@ -1,0 +1,20 @@
+### MEMOSPACE Visual Tokens (Final)
+
+#### Core System Colors
+* **App Canvas Background:** `#FAF9F6` (Soft Paper White)
+* **Surface Card Background:** `#FFFFFF` (Pure White)
+* **Primary Text / Icons:** `#252422` (Charcoal Black)
+* **Secondary / Muted Text:** `#707070` (Muted Gray)
+* **Border Token:** `#EBF0F3` (Light Gray)
+
+#### 10 Preset Kategori (Neo-Brutalism Pastel)
+1. **Red Coral** (`#FF6B6B`)
+2. **Bright Sulphur** (`#E2F16D`)
+3. **Sky Blue** (`#7CD4FD`)
+4. **Soft Lavender** (`#9D7CFD`)
+5. **Mint Green** (`#6DF1A8`)
+6. **Apricot Orange** (`#FFA07A`)
+7. **Blush Pink** (`#FFB6C1`)
+8. **Deep Teal** (`#4ECDC4`)
+9. **Creamy Mustard** (`#F7D070`)
+10. **Cool Ash Gray** (`#B0BEC5`)

@@ -27,12 +27,33 @@ class NoteProvider extends ChangeNotifier {
     loadData();
   }
 
+  static const List<String> categoryColors = [
+    '#FF6B6B', '#E2F16D', '#7CD4FD', '#9D7CFD', '#6DF1A8',
+    '#FFA07A', '#FFB6C1', '#4ECDC4', '#F7D070', '#B0BEC5'
+  ];
+
   Future<void> loadData() async {
     _isLoading = true;
     notifyListeners();
 
     _categories = await DatabaseHelper.instance.getCategories();
     _notes = await DatabaseHelper.instance.getNotes();
+
+    // Migrate old default purple colors to varied palette
+    bool migrated = false;
+    for (int i = 0; i < _categories.length; i++) {
+      if (_categories[i].colorHex == '#673AB7') {
+        final updated = _categories[i].copyWith(
+          colorHex: categoryColors[i % categoryColors.length]
+        );
+        await DatabaseHelper.instance.updateCategory(updated);
+        migrated = true;
+      }
+    }
+    
+    if (migrated) {
+      _categories = await DatabaseHelper.instance.getCategories();
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -60,6 +81,11 @@ class NoteProvider extends ChangeNotifier {
     await updateNote(updatedNote);
   }
 
+  Future<void> toggleFavorite(NoteModel note) async {
+    final updatedNote = note.copyWith(isFavorite: !note.isFavorite);
+    await updateNote(updatedNote);
+  }
+
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -67,9 +93,10 @@ class NoteProvider extends ChangeNotifier {
   
   // --- Categories ---
   
-  Future<void> addCategory(CategoryModel category) async {
-    await DatabaseHelper.instance.insertCategory(category);
+  Future<int> addCategory(CategoryModel category) async {
+    final id = await DatabaseHelper.instance.insertCategory(category);
     await loadData();
+    return id;
   }
   
   Future<void> updateCategory(CategoryModel category) async {
